@@ -31,18 +31,25 @@ addNameClient() {
 
 # Function to update client details using Zenity
 updateClient() {
-    client_id=$(zenity --entry --title="✏️ Update Client" --text="Enter Client ID to update:")
+    client_id=$(zenity --entry --title="✏️ Update Client" --text="Enter Client ID or Name to update:")
     [[ -z "$client_id" ]] && return
 
     temp_file=$(mktemp) # Use a temporary file safely
     found=0
 
-    while IFS=" | " read -r name id account; do
-        if [[ "$id" == "$client_id" ]]; then
+    while IFS="|" read -r name id account; do
+        # Trim spaces
+        name=$(echo "$name" | xargs)
+        id=$(echo "$id" | xargs)
+        account=$(echo "$account" | xargs)
+
+        # Check by ID or Name
+        if [[ "$id" == "$client_id" || "$name" == "$client_id" ]]; then
             found=1
             new_name=$(zenity --entry --title="✏️ Update Name" --text="Enter New Name:" --entry-text="$name")
+            new_id=$(zenity --entry --title="🆔 Update ID" --text="Enter New ID:" --entry-text="$id")
             new_account=$(zenity --entry --title="🔢 Update Account Number" --text="Enter New Account Number:" --entry-text="$account")
-            echo "$new_name | $id | $new_account" >>"$temp_file"
+            echo "$new_name | $new_id | $new_account" >>"$temp_file"
         else
             echo "$name | $id | $account" >>"$temp_file"
         fi
@@ -52,26 +59,25 @@ updateClient() {
         mv "$temp_file" "$DB_FILE"
         zenity --info --title="✅ Success" --text="Client updated successfully!"
     else
-        zenity --error --title="🚫 Error" --text="Client ID not found!"
+        zenity --error --title="🚫 Error" --text="Client ID or Name not found!"
         rm "$temp_file"
     fi
 }
 
 # Function to delete a client using Zenity
 deleteClient() {
-    client_id=$(zenity --entry --title="🗑 Delete Client" --text="Enter Client ID to delete:")
-    [[ -z "$client_id" ]] && return # Exit if no ID entered
+    client_id=$(zenity --entry --title="🗑 Delete Client" --text="Enter Client ID or Name to delete:")
+    [[ -z "$client_id" ]] && return
 
-    if [[ ! -s "$DB_FILE" ]]; then
-        zenity --error --title="🚫 Error" --text="No client data available to delete!"
-        return
-    fi
-
-    temp_file="temp.txt"
+    temp_file=$(mktemp)
     found=0
 
-    while IFS=" | " read -r name id account; do
-        if [[ "$id" == "$client_id" ]]; then
+    while IFS="|" read -r name id account; do
+        name=$(echo "$name" | xargs)
+        id=$(echo "$id" | xargs)
+        account=$(echo "$account" | xargs)
+
+        if [[ "$id" == "$client_id" || "$name" == "$client_id" ]]; then
             found=1
         else
             echo "$name | $id | $account" >>"$temp_file"
@@ -82,7 +88,7 @@ deleteClient() {
         mv "$temp_file" "$DB_FILE"
         zenity --info --title="✅ Success" --text="Client deleted successfully!"
     else
-        zenity --error --title="🚫 Error" --text="Client ID not found!"
+        zenity --error --title="🚫 Error" --text="Client ID or Name not found!"
         rm "$temp_file"
     fi
 }
